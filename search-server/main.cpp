@@ -109,11 +109,20 @@ private:
         return words;
     }
 
+    //проверяет является ли слово минус- или плюс-словом
+    bool ParseQueryWord(string& word) const {
+        return word[0] == '-';
+    }
+
+    double GetIDF(const string& word) const {
+        return log(static_cast<double>(document_count_) / static_cast<double>(documents_freqs_.at(word).size()));
+    }
+
     //добавляет минус- и плюс-слова, на основе вводимой пользователем строки
     Query ParseQuery(const string& text) const {
         Query query_words;
         for (string word : SplitIntoWordsNoStop(text)){
-            if(word[0] == '-') {
+            if(ParseQueryWord(word)) {
                 word = word.substr(1);
                 if (!IsStopWord(word)){
                     query_words.minus_words.insert(word);
@@ -134,7 +143,7 @@ private:
         for (const auto& word : query_words.plus_words) {
             double idf = 0.0;
             if (documents_freqs_.count(word)) {
-                idf = log(static_cast<double>(document_count_) / static_cast<double>(documents_freqs_.at(word).size()));
+                idf = GetIDF(word);
             } else {
                 continue;
             }

@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <numeric>
 #include <set>
 #include <string>
 #include <utility>
@@ -10,6 +11,7 @@
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
+const double MEASUREMENT_ERROR = 1e-6;
 
 string ReadLine() {
     string s;
@@ -76,19 +78,15 @@ public:
     }
 
     vector<Document> FindTopDocuments(const string& raw_query) const {
-        auto p = []([[maybe_unused]] int document_id, DocumentStatus status, [[maybe_unused]] int rating) {
-            return status == DocumentStatus::ACTUAL;
-        };
- 
-        vector<Document> matched_documents =  FindTopDocuments(raw_query, p);
+        vector<Document> matched_documents =  FindTopDocuments(raw_query, DocumentStatus::ACTUAL);
         return matched_documents;
     };
     
     vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status) const {
         return FindTopDocuments(raw_query,
-                               [status]([[maybe_unused]] int document_id, 
+                               [status](int document_id, 
                                   DocumentStatus document_status,
-                                  [[maybe_unused]] int rating) {
+                                  int rating) {
                                       return document_status == status;
                                   });
     }
@@ -101,11 +99,10 @@ public:
 
         sort(matched_documents.begin(), matched_documents.end(),
              [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
+                 if (abs(lhs.relevance - rhs.relevance) < MEASUREMENT_ERROR) {
                      return lhs.rating > rhs.rating;
-                 } else {
-                     return lhs.relevance > rhs.relevance;
                  }
+                 return lhs.relevance > rhs.relevance;
              });
         if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
             matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
@@ -169,10 +166,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
+        int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
         return rating_sum / static_cast<int>(ratings.size());
     }
 

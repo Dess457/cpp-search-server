@@ -96,19 +96,10 @@ public:
 
     explicit SearchServer(const string& stop_words_text)
         : SearchServer(SplitIntoWords(stop_words_text)) {
-            for (string letter : SplitIntoWords(stop_words_text)) {
-                if (!IsValidWord(letter)) {
-                    throw invalid_argument("недопустимые символы в стоп-словах"s);
-                }
-            }
     }
 
     void AddDocument(int document_id, const string& document, 
                      DocumentStatus status, const vector<int>& ratings) {
-        if(!IsValidWord(document) || IsStopWord(document)) {
-            throw invalid_argument("недопустимые символы в документе"s);
-        }
-        
         if(document_id<0) {
             throw invalid_argument("отрицательный id документа"s);
         }
@@ -132,11 +123,11 @@ public:
     }
     
     int GetDocumentId(int index) const {
-        if (index <0 || index> static_cast<int>(check_id.size())) {
+        if ( index < 0 || index > static_cast<int>(check_id.size()) ) {
             throw out_of_range("индекс документа выходит за пределы допустимого диапазона"s);
         }
         
-        return check_id[index];
+        return check_id.at(index);
     }
 
     template <typename DocumentPredicate>
@@ -228,20 +219,6 @@ private:
 
     static bool IsValidWord(const string& word) {
         // A valid word must not contain special characters
-        for (int i = 0; i < word.size(); ++i) {
-            if (word[i] == '-' && word[i + 1] == '-') {
-                return false;
-            }
-            
-            if (word[i] == '-' && i + 1 == word.size()) {
-                return false;
-            }
-            
-            if (word[i] == '-' && word.size() == 1) {
-                return false;
-            }
-        }
-        
         return none_of(word.begin(), word.end(), [](char c) {
             return c >= '\0' && c < ' ';
         });
@@ -252,6 +229,10 @@ private:
     }
 
     vector<string> SplitIntoWordsNoStop(const string& text) const {
+        if (!IsValidWord(text) || IsStopWord(text)) {
+            throw invalid_argument("недопустимые символы в документе"s);
+        }
+        
         vector<string> words;
         
         for (const string& word : SplitIntoWords(text)) {
@@ -268,11 +249,7 @@ private:
             return 0;
         }
         
-        int rating_sum = 0;
-        
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
+        int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
         
         return rating_sum / static_cast<int>(ratings.size());
     }
@@ -283,15 +260,29 @@ private:
         bool is_stop;
     };
 
-    QueryWord ParseQueryWord(string text) const {
-        bool is_minus = false;
-        // Word shouldn't be empty
-        if (text[0] == '-') {
-            is_minus = true;
-            text = text.substr(1);
+    QueryWord ParseQueryWord(string word) const {
+        for (int i = 0; i < word.size(); ++i) {
+            if (word[i] == '-' && word[i + 1] == '-') {
+                throw invalid_argument("неправильное слово"s);
+            }
+            
+            if (word[i] == '-' && i + 1 == word.size()) {
+                throw invalid_argument("неправильное слово"s);
+            }
+            
+            if (word[i] == '-' && word.size() == 1) {
+                throw invalid_argument("неправильное слово"s);
+            }
         }
         
-        return {text, is_minus, IsStopWord(text)};
+        bool is_minus = false;
+        // Word shouldn't be empty
+        if (word[0] == '-') {
+            is_minus = true;
+            word = word.substr(1);
+        }
+        
+        return {word, is_minus, IsStopWord(word)};
     }
 
     struct Query {

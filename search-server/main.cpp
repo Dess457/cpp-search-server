@@ -132,11 +132,6 @@ public:
     vector<Document> FindTopDocuments(const string& raw_query,
                                       DocumentPredicate document_predicate) const {
         const Query query = ParseQuery(raw_query);
-        
-        if(!IsValidWord(raw_query)) {
-            throw invalid_argument("недопустимые символы в поисковом запросе"s);
-        }
-        
         auto result = FindAllDocuments(query, document_predicate);
         
         sort(result.begin(), result.end(),
@@ -173,10 +168,6 @@ public:
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query,
                                                         int document_id) const {
        
-        if (!IsValidWord(raw_query)) {
-            throw invalid_argument("недопустимые символы в документе"s);
-        }
-        
         if(document_id < 0) {
             throw invalid_argument("отрицательное id документа"s);
         }
